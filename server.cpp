@@ -17,11 +17,12 @@
 #include <sys/socket.h>
 #include <cstdint>
 #include <cstdio>
+#include "helper.h"
 using namespace std;
 
 // ---- Constants ----
-const int32_t MAX_VARS_PER_FRAME = 16;
-const int32_t MAX_STACK_DEPTH = 64;
+//const int32_t MAX_VARS_PER_FRAME = 16;
+//const int32_t MAX_STACK_DEPTH = 64;
 const int32_t MAX_FUNCS = 128;
 const int32_t MAX_TOKENS = MAX_VARS_PER_FRAME + 2; // kW + func_name + upto 16 params/args
 const int32_t MAX_PATCHES = MAX_FUNCS * 4;
@@ -169,7 +170,7 @@ public:
         return stepCount;
     }
 };
-
+/*
 // Core structs
 struct Variable
 {
@@ -197,7 +198,7 @@ struct TTDBHeader
     int32_t version;
     int32_t stepCount;
     int64_t indexOffset;
-};
+};*/
 void writeHeader(FILE *f, const TTDBHeader &h)
 {
     fwrite(h.magic, 1, 4, f);
@@ -206,7 +207,7 @@ void writeHeader(FILE *f, const TTDBHeader &h)
     fwrite(&h.indexOffset, sizeof(int64_t), 1, f);
     // placeholder for other two data members
 }
-
+/*
 // resolve.bin - bookkeeping
 struct FuncEntry
 {
@@ -218,7 +219,7 @@ struct PendingPatch
     int64_t byteOffsetOfOffsetField; // where in resolve.bin to seek back and overwrite
     string targetFuncName;
 };
-
+*/
 
 
 // PASS 0x0: READING source.bin + VALIDITY CHECK

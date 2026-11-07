@@ -68,27 +68,47 @@ public:
     // Implement these functions:
     Queue()
     {
-
+      front=new Node();
+      rear=front;
+      count=0;
     }
     ~Queue()
     {
-
+    while(front!=nullptr)
+    {  
+         Node* temp=front;
+        front=front->next;
+        delete temp;
+    }
     }
     void enqueue(const T &val)
     {
-
+     Node* temp=new Node();
+     temp->data=val;
+     rear->next=temp;
+     rear=temp;
+     count++;
     }
     T dequeue()
     {
-
+        if(isEmpty())
+        {
+            return T();
+        }
+        Node* temp=front;
+        front=front->next;
+        T tempdata=front->data;
+        delete temp;
+     count--;
+     return tempdata;
     }
     bool isEmpty()
     {
-        
+        return count==0;
     }
     int size()
     {
-
+        return count;
     }
 };
 
