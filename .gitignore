@@ -8,3 +8,4 @@ session.tdbg
 ttdb_last.tdbg
 test_crc
 test_queue
+*.tdbg
