@@ -127,9 +127,52 @@ bool receiveResponse(int sock, const char *outTdbgPath, string &outError)
 
 bool openTdbg(const char *path, TdbgReader &r)
 {
+    FILE *fl=fopen(path,"rb");
+    if(!fl) return false;
+    fseek(fl,0, SEEK_END);
+
+    long size=ftell(fl);
+
+    fseek(fl,0,SEEK_SET);
+    TTDBHeader head;
+    if(fread(head.magic,1,4,fl)!=4 || fread(&head.version,1,4,fl)!=4
+|| fread(&head.stepCount,1,4,fl)!=4 || fread(&head.indexOffset,1,8,fl)!=8)
+    {
+        fclose(fl);
+        return false;
+    }
+    //data check
+    if(head.version!=1 || head.stepCount<0)
+    {
+        fclose(fl);
+        return false;
+    }
+    //file name
+    if(head.magic[0]!= 'T' || head.magic[1]!= 'T'|| head.magic[2]!= 'D'||
+    head.magic[3]!= 'B')
+    {
+        fclose(fl);
+        return false;
+    }
+    // r ki validity
+    vector<int64_t> idddd(head.stepCount);
+    fseek(fl,head.indexOffset,SEEK_SET);
+    if(fread(idddd.data(),8,head.stepCount,fl)!= size_t(head.stepCount))
+{
+    fclose(fl);
+    return false;
 }
+r.header=head;
+r.index=idddd;
+fclose(fl);
+return true;
+} 
 void closeTdbg(TdbgReader &r)
 {
+    r.index.clear();
+    r.header.stepCount=0;
+    r.header.indexOffset=0;
+    r.file_index=-1;
     // Free r.index and close the file.
 }
 Snapshot *readSnapshotAt(TdbgReader &r, int32_t step)
@@ -143,11 +186,22 @@ Snapshot *readSnapshotAt(TdbgReader &r, int32_t step)
 
 void initSession(DebugSession &s)
 {
-   
+   s.active_flag=0;
+   s.currentStep=0;
+   s.reader.file_index=-1;
+   s.reader.index.clear();
+   s.reader.header.stepCount=0;
 }
 void closeSession(DebugSession &s)
 {
     // If active, call closeTdbg(s.reader). Then set active = false.
+    //assuming keh false is 0, the rest is true
+    if(s.active_flag)
+    {
+        closeTdbg(s.reader);
+        s.active_flag=0;
+        s.currentStep=0;
+    }
     // Called when the user types quit and when the input ends.
 }
 
