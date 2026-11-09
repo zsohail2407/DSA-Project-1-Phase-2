@@ -45,3 +45,15 @@ struct TTDBHeader
     int32_t stepCount;
     int64_t indexOffset;
 };
+
+//checksum
+
+uint32_t checksum_upd(uint32_t sum, const char * buf,size_t n)
+{
+    for(size_t i=0;i<n;i++)
+    {
+      unsigned char a=buf[i];
+      sum=sum*31+b;
+    }
+    return sum;
+}

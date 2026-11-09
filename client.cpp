@@ -22,6 +22,7 @@
 #include <signal.h>
 #include <vector>
 #include <sys/socket.h>
+#include <sstream>
 #include "helper.h"
 using namespace std;
 
@@ -259,16 +260,37 @@ bool cmdStart(DebugSession &s, const string &sourcePath)
 {
     // 1. requestDebugFile with host and port, saving to TDBG_FILE.
     // 2. If it fails, print the error text and return false. Keep the old session as it was.
+    string error;
+    //if(requestDebugFile(sourcePath,error))
+    //{
+        cout<<error<<endl;
+        return false;
+    //}
     // 3. Open the new file with openTdbg into a NEW local TdbgReader.
+    TdbgReader n;
+    n.file_index=-1;
+    if(!openTdbg(TDBG_FILE,n))
+    {
+        cout<<"server sent a damaged .tdbg file"<<endl;
+        return false;
+    }
     //    If that fails, print "server sent a damaged .tdbg file", keep the old session, return false.
     // 4. Only now close the old reader (if s.active), then put the new reader into s,
+    if(s.active_flag)
+    {
+        closeTdbg(s.reader);
+    }
+    s.reader=n;
     //    set s.currentStep = 0 and s.active = true.
+    s.currentStep = 0;
+    s.active_flag = true;
     // 5. Show step 1 with showCurrent(s).
+    return showCurrent(s);
 }
-bool cmdNext(DebugSession &s) {moveBy(s,1);}
-bool cmdPrv(DebugSession &s) {moveBy(s,-1);}
-bool cmdJmpNext(DebugSession &s, int32_t n) {moveBy(s,n);}
-bool cmdJmpPrv(DebugSession &s, int32_t n) { moveBy(s,-n);}
+bool cmdNext(DebugSession &s) { return moveBy(s,1);}
+bool cmdPrv(DebugSession &s) {return moveBy(s,-1);}
+bool cmdJmpNext(DebugSession &s, int32_t n) {return moveBy(s,n);}
+bool cmdJmpPrv(DebugSession &s, int32_t n) { return moveBy(s,-n);}
 
 // =============================================================================================
 // PART E: PRINTING
@@ -276,10 +298,53 @@ bool cmdJmpPrv(DebugSession &s, int32_t n) { moveBy(s,-n);}
 
 void printSnapshot(int32_t step, int32_t totalSteps, const Snapshot &s)
 {
+    //func name, steps, main
+    cout<<step<<" of "<< totalSteps<<endl;
+    for(int i=0;i<s.stackDepth;i++)
+    {
+    Frame f=s.callStack[i];
+    cout<<f.func_name;
+    if(i==0)
+    {
+        cout<<" curr ";
+    }
+    //Frame:func_name, argc,argv[16],returnLine,locals[16],local count
+    if(f.argc==0 && f.localCount==0)
+    {
+        cout<<" Empty(no vars)";
+    }
+    //argv
+    if(f.argc>0)
+    {
+        cout<<" arguments: ";
+        for(int idx=0;idx<f.argc;idx++)
+        {
+            cout<< " "<<f.argv[idx].name<< "="<<f.argv[idx].value<<" ";
+        }
+    }
+    //locals
+    if(f.localCount>0)
+    {
+        cout<<" locals: ";
+        for(int idx=0;idx<f.localCount;idx++)
+        {
+            cout<< " "<<f.locals[idx].name<< "="<<f.locals[idx].value<<" ";
+        }
+    }
+    cout<<endl;
+    }
 }
 void printHelp()
 {
     // Print the commands
+    cout<<"Commands:"<<endl;
+    cout<<"start<file>  : Upload a C-- program, then record"<<endl;
+    cout<<"next  : Move one step forward"<<endl;
+    cout<<"prv  : Move one step backwards"<<endl;
+    cout<<"jmp next <n>  : jump n steps forward"<<endl;
+    cout<<"jmp prv <n>  : jump n steps backwards"<<endl;
+    cout<<"help  : view/show this list"<<endl;
+    cout<<"quit, exit  : leave"<<endl; 
 }
 
 // =============================================================================================
@@ -289,23 +354,133 @@ void printHelp()
 bool runCommand(DebugSession &s, const string &line, bool &quitRequested)
 {
     // 1. Split the line into words.
+    stringstream ss(line);
+    string word;
+    vector<string> words;
+    while(ss>>word)
+    {
+        words.push_back(word);
+    }
+    if(words.empty())
+    {
+        return true;
+    }
     // 2. If the first word is "ttdb", drop it.
+    if(words[0]=="ttdb")
+    {
+       words.erase(words.begin());
+       if(words.empty())
+       {
+        return true;
+       }
+    }
     // 3. Match the first word:
     //      start      -> needs a path after it, then cmdStart
+    if(words[0]=="start"&& words.size()==2)
+    {
+        cmdStart(s,words[1]);
+         return true;
+    }
     //      next       -> no more words, then cmdNext
+    if(words[0]=="next"&& words.size()==1)
+    {
+        cmdNext(s);
+         return true;
+    }
     //      prv        -> no more words, then cmdPrv
+    if(words[0]=="prv" && words.size()==1)
+    {
+        cmdPrv(s);
+         return true;
+    }
     //      jmp        -> second word "next" or "prv", third word a positive number ,
     //                    then cmdJmpNext or cmdJmpPrv
+
+
+    if(words[0]=="jmp") //wrong: idk how to do it, check again
+    {
+        if(words.size()==3)
+        {
+         return false;
+        }
+        int n=stoi(words[2]);
+        if(n>0)
+        {
+        if(n<1)
+        {
+            cout<<"n should be atleast 1 and it cant be neg or 0"<<endl;
+            return false;
+        }
+        if(words[1]=="next")
+        {
+          cmdJmpNext(s,n);
+           return true;
+        }
+        else if(words[1]=="prv")
+        {
+          cmdJmpPrv(s,n);
+           return true;
+        }
+        else{
+            cout<<"Unknown Command"<<endl;
+             return false;
+        }
+    }
+    }
     //      help       -> printHelp
+    if(words[0]=="help" && words.size()==1)
+    {
+        printHelp();
+         return true;
+    }
     //      quit, exit -> set quitRequested = true
+    if(words[0]=="quit" || words[0]=="exit")
+    {
+        if(words.size()==1)
+        {
+        quitRequested = true;
+         return true;
+        }
+    }
+    cout<<"Unknown Command"<<endl;
+    printHelp();
+    return false;
     // 4. For anything else, or a wrong number of words, print "unknown command" and the help text, and return false.
 }
 int main(int argc, char *argv[])
 {
-    // you get string LB_HOST and int LB_PORT = 0 in arguments of this main function. 
+    // you get string LB_HOST and int LB_PORT = 0 in arguments of this main function.
+    
+    
+    // main host port
+    if(argc==3)
+    {
+        LB_HOST=argv[1];
+        LB_PORT=atoi(argv[2]);
+    }
+    DebugSession session;
+    initSession(session);
 
-    // DebugSession session; initSession(session);
     // Print a short welcome and the help text.
+    cout<<"Welcome to the Time Travel Debugger"<<endl;
+    printHelp();
+    string aaaa;
+    bool q=false;
+    while(true)
+    {
+        cout<<PROMPT;
+        if(!getline(cin,aaaa))
+        {
+            break;
+        }
+        runCommand(session,aaaa,q);
+        if(q)
+        {
+            break;
+        }
+    }
+    closeSession(session);
+    return 0;
     //
     // Infinite loop:
     //   if quitRequested, break
