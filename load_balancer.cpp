@@ -129,6 +129,16 @@ sig_atomic_t flag = 1;
 // ---- Basic socket helpers ----
 bool sendAll(int sock, const char *buf, size_t n) 
 {
+    size s=0;
+    while(s<n)
+    {
+        //size of no. of sent bytes?
+        
+        //check size keh 0 say bara ho warna
+        //return false;
+        //also figure out a change in s
+    }
+    return true;
     // Reply format: [status: 1 byte][sending_material][checksum: 4 bytes].
     // send() may send fewer bytes than asked for, so keep calling it until all n bytes are sent.
     

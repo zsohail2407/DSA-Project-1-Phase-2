@@ -213,11 +213,47 @@ void printSnapshot(int32_t step, int32_t totalSteps, const Snapshot &s); // defi
 
 bool showCurrent(DebugSession &s)
 {
-    // Read the snapshot at s.currentStep, call printSnapshot, delete the snapshot.
-    // If readSnapshotAt returns nullptr, print "damaged .tdbg file" and return false.
+    if(s.active_flag==0)
+    {
+        cout<<"No session"<<endl;
+        return false;
+    }
+    Snapshot* temp= readSnapshotAt(s.reader,s.currentStep);
+    if(temp==nullptr)
+    {
+        cout<<"damaged .tdbg file"<<endl;
+        return false;
+    }
+    printSnapshot(s.currentStep+1,s.reader.header.stepCount,*temp);
+    delete temp;
+    return true;
 }
 bool moveBy(DebugSession &s, int32_t delta)
-{
+{//delta is how far you are moving
+    if(s.active_flag==0)
+    {
+        cout<<"No session"<<endl;
+        return false;
+    }
+    int res=s.currentStep+delta;
+    if(res>=s.reader.header.stepCount)
+    {
+        cout<<"at last step"<<endl;
+        return false;
+    }
+    if(res<0)
+    {
+         cout<<"at first step"<<endl;
+        return false;
+    }
+    int64_t oldstep=s.currentStep;
+    s.currentStep=res;
+    if(!showCurrent(s))
+    {
+      s.currentStep=oldstep;
+      return false;
+    }
+    return true;
 }
 bool cmdStart(DebugSession &s, const string &sourcePath)
 {
@@ -229,10 +265,10 @@ bool cmdStart(DebugSession &s, const string &sourcePath)
     //    set s.currentStep = 0 and s.active = true.
     // 5. Show step 1 with showCurrent(s).
 }
-bool cmdNext(DebugSession &s) {}
-bool cmdPrv(DebugSession &s) {}
-bool cmdJmpNext(DebugSession &s, int32_t n) {}
-bool cmdJmpPrv(DebugSession &s, int32_t n) { }
+bool cmdNext(DebugSession &s) {moveBy(s,1);}
+bool cmdPrv(DebugSession &s) {moveBy(s,-1);}
+bool cmdJmpNext(DebugSession &s, int32_t n) {moveBy(s,n);}
+bool cmdJmpPrv(DebugSession &s, int32_t n) { moveBy(s,-n);}
 
 // =============================================================================================
 // PART E: PRINTING
