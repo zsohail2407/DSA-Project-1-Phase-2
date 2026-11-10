@@ -95,6 +95,7 @@ bool recvAll(int sock, char *buf, size_t n)
 }
 bool sendAll(int sock, const char *buf, size_t n)
 {
+    
     // send() can send fewer bytes than asked for, so keep calling it until all n bytes are sent.
     // Use the flag MSG_NOSIGNAL. Return false if the connection fails.
 }
@@ -178,6 +179,20 @@ void closeTdbg(TdbgReader &r)
 }
 Snapshot *readSnapshotAt(TdbgReader &r, int32_t step)
 {
+    // step no.
+    if(step<0)
+    {
+        return nullptr;
+    }
+    FILE *fl=fopen(path,"rb");
+    if(!fl)
+    {
+        return false;
+    }
+    fseek(fl,0, SEEK_END);
+    Snapshot* s=new Snapshot;
+    //aaaaaaaaaaaaaaaaa
+    //come back to this later
 }
 
 // =============================================================================================
